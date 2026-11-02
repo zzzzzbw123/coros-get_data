@@ -1,0 +1,38 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Unzip project
+        run: |
+          unzip -q coros_health_app_project.zip -d project
+
+      - name: Find project directory
+        id: proj
+        run: |
+          dir=$(find project -maxdepth 3 -name "settings.gradle*" -type f | head -1 | xargs dirname)
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: Build APK
+        run: |
+          cd "${{ steps.proj.outputs.dir }}"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: ${{ steps.proj.outputs.dir }}/**/build/outputs/apk/debug/*.apk
